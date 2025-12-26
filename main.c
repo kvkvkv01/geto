@@ -707,11 +707,27 @@ static void respond_download(sqlite3 *db, const char *token) {
         respond_text(404, "Not Found", "Unknown token");
         return;
     }
-    const char *hash = (const char *)sqlite3_column_text(stmt, 0);
+    const unsigned char *hash_txt = sqlite3_column_text(stmt, 0);
+    const unsigned char *filename_txt = sqlite3_column_text(stmt, 2);
+    const unsigned char *path_txt = sqlite3_column_text(stmt, 3);
     long long expires_at = sqlite3_column_int64(stmt, 1);
-    const char *filename = (const char *)sqlite3_column_text(stmt, 2);
-    const char *path = (const char *)sqlite3_column_text(stmt, 3);
     long long size = sqlite3_column_int64(stmt, 4);
+
+    /* Copy values out before finalizing the statement to avoid dangling pointers */
+    char hashbuf[HASH_HEX_LEN + 1] = {0};
+    if (hash_txt) strncpy(hashbuf, (const char *)hash_txt, HASH_HEX_LEN);
+    hashbuf[HASH_HEX_LEN] = '\0';
+    char filenamebuf[FILENAME_MAXLEN + 1] = {0};
+    if (filename_txt) strncpy(filenamebuf, (const char *)filename_txt, FILENAME_MAXLEN);
+    filenamebuf[FILENAME_MAXLEN] = '\0';
+    char pathbuf[PATH_MAX];
+    pathbuf[0] = '\0';
+    if (path_txt) strncpy(pathbuf, (const char *)path_txt, PATH_MAX - 1);
+    pathbuf[PATH_MAX - 1] = '\0';
+
+    const char *hash = hashbuf;
+    const char *filename = filenamebuf[0] ? filenamebuf : NULL;
+    const char *path = pathbuf[0] ? pathbuf : NULL;
 
     if (expires_at < now_seconds()) {
         sqlite3_finalize(stmt);
@@ -721,8 +737,28 @@ static void respond_download(sqlite3 *db, const char *token) {
     }
     sqlite3_finalize(stmt);
 
-    FILE *fp = fopen(path, "rb");
+    char serve_path[PATH_MAX];
+    if (path && strlen(path) < PATH_MAX) {
+        strncpy(serve_path, path, PATH_MAX);
+        serve_path[PATH_MAX-1] = '\0';
+    } else {
+        serve_path[0] = '\0';
+    }
+
+    FILE *fp = NULL;
+    if (serve_path[0]) {
+        fp = fopen(serve_path, "rb");
+    }
     if (!fp) {
+        /* Try falling back to data_dir/hash.bin in case the stored path is not accessible */
+        const char *dd = get_env("FILE_DATA_DIR", "./data");
+        snprintf(serve_path, sizeof(serve_path), "%s/%s.bin", dd, hash);
+        fp = fopen(serve_path, "rb");
+    }
+
+    if (!fp) {
+        int serr = errno;
+        fprintf(stderr, "fopen failed for '%s': %d %s\n", serve_path, serr, strerror(serr));
         respond_text(404, "Not Found", "File missing");
         drop_single_url(db, token, hash);
         return;
