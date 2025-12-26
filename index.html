@@ -1,92 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>getO</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>getO — Minimal</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: "Lucida Grande", "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(180deg, #dce7f6 0%, #c7d6f0 40%, #b4c7e8 100%);
-      color: #1a1a1a;
-      height: 100%;
+    :root{
+      --bg:#f6f6f6;
+      --card:#ffffff;
+      --accent:#0078d7; /* Metro/Fluent blue */
+      --muted:#666;
+      --radius:0px; /* square corners */
+      --gap:16px;
     }
-    .window {
-      width: 420px;
-      margin: 60px auto;
-      border: 1px solid #6b84a8;
-      background: linear-gradient(180deg, #f3f6fb 0%, #e4ecf8 100%);
-      box-shadow: 0 0 0 1px #fff inset;
-    }
-    .titlebar {
-      height: 24px;
-      background: linear-gradient(180deg, #6f92c9 0%, #4d6ea8 100%);
-      color: #fff;
-      font-weight: bold;
-      padding: 3px 8px;
-      text-shadow: 0 1px 0 rgba(0,0,0,0.35);
-      border-bottom: 1px solid #3f5d8b;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset;
-    }
-    .content {
-      padding: 18px 20px 22px;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
-      color: #2b3a55;
-    }
-    input[type="file"] {
-      width: 100%;
-      border: 1px solid #7f9db9;
-      background: linear-gradient(180deg, #ffffff 0%, #e6edf6 100%);
-      padding: 6px;
-      box-sizing: border-box;
-    }
-    .submit-row {
-      margin-top: 14px;
-      text-align: right;
-    }
-    button {
-      padding: 7px 18px;
-      border: 1px solid #3f5d8b;
-      background: linear-gradient(180deg, #7aa1d9 0%, #5c7eb6 100%);
-      color: #fff;
-      font-weight: bold;
-      text-shadow: 0 1px 0 rgba(0,0,0,0.3);
-      cursor: pointer;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.45) inset;
-    }
-    button:active {
-      background: linear-gradient(180deg, #5c7eb6 0%, #7aa1d9 100%);
-    }
-    .note {
-      margin-top: 10px;
-      font-size: 12px;
-      color: #3a4b68;
-      line-height: 1.4;
-    }
+    html,body{height:100%;margin:0;font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;background:var(--bg);color:#111}
+    .wrap{display:flex;align-items:center;justify-content:center;height:100%}
+    .card{width:360px;background:var(--card);border-left:6px solid var(--accent);padding:24px;box-sizing:border-box;border-radius:var(--radius);}
+    h1{margin:0 0 12px 0;font-weight:600;font-size:20px;color:var(--accent)}
+    p.lead{margin:0 0 18px 0;color:var(--muted);font-size:13px}
+    form{display:flex;flex-direction:column;gap:12px}
+    label{font-size:13px;color:#222}
+    .file-tile{display:flex;align-items:center;justify-content:space-between;border:1px solid #e6e6e6;padding:12px;border-radius:4px;background:#fafafa}
+    .file-tile span{font-size:13px;color:#333}
+    .choose{background:transparent;border:none;color:var(--accent);font-weight:600;cursor:pointer}
+    .actions{display:flex;justify-content:flex-end}
+    .btn{background:var(--accent);color:#fff;padding:10px 14px;border:none;font-weight:600;border-radius:2px;cursor:pointer}
+    .btn.secondary{background:#f3f3f3;color:#222;border:1px solid #e6e6e6;margin-right:8px}
+    footer{margin-top:14px;color:var(--muted);font-size:12px}
+    input[type=file]{display:none}
   </style>
 </head>
 <body>
-  <div class="window">
-    <div class="titlebar">getO</div>
-    <div class="content">
+  <div class="wrap">
+    <div class="card" role="main">
+      <h1>getO</h1>
+      <p class="lead">Upload a file. Files are deduplicated by SHA‑256 and links expire after 72 hours.</p>
+
       <form method="post" action="/upload" enctype="multipart/form-data">
-        <label for="file">Select a file to upload</label>
-        <input id="file" name="file" type="file" required />
-        <div class="submit-row">
-          <button type="submit">Upload</button>
+        <label for="file">File</label>
+        <div class="file-tile">
+          <span id="filename">No file chosen</span>
+          <div>
+            <label class="choose" for="file">Choose…</label>
+            <input id="file" name="file" type="file" />
+          </div>
         </div>
-        <div class="note">
-          Files upload to the CGI service, deduplicated by SHA-256. Download link is valid for 72 hours.
+
+        <div class="actions">
+          <button type="submit" class="btn">Upload</button>
         </div>
+        <footer>Files upload to the CGI service. No javascript required — this is progressive enhancement.</footer>
       </form>
     </div>
   </div>
+
+  <script>
+    // Minimal progressive enhancement: show chosen filename
+    (function(){
+      const input = document.getElementById('file');
+      const label = document.getElementById('filename');
+      input.addEventListener('change', function(){
+        const f = this.files && this.files[0];
+        label.textContent = f ? f.name : 'No file chosen';
+      });
+    })();
+  </script>
 </body>
 </html>
