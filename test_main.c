@@ -80,7 +80,7 @@ static int tests_failed = 0;
 } while(0)
 
 /* Constants from main.c */
-#define TOKEN_LEN 64
+#define TOKEN_LEN 16
 #define HASH_HEX_LEN 64
 #define FILENAME_MAXLEN 255
 #define DEFAULT_MAX_UPLOAD (50LL * 1024 * 1024)
