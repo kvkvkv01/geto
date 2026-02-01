@@ -1,0 +1,27 @@
+services:
+  geto:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - geto-data:/data
+    environment:
+      - FILE_DB_PATH=/data/filemeta.db
+      - FILE_DATA_DIR=/data
+      - BASE_URL=https://files.tomoyo.systems/cgi-bin/file_cgi.cgi
+      - MAX_UPLOAD_BYTES=52428800
+      - RATE_LIMIT_PER_MIN=60
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.geto.rule=Host(`files.tomoyo.systems`)"
+      - "traefik.http.routers.geto.entrypoints=websecure"
+      - "traefik.http.routers.geto.tls.certresolver=letsencrypt"
+      - "traefik.http.services.geto.loadbalancer.server.port=8080"
+    networks:
+      - traefik
+
+volumes:
+  geto-data:
+
+networks:
+  traefik:
+    external: true

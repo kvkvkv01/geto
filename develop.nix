@@ -30,18 +30,7 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║           geto - Minimal CGI File Cache                    ║"
-    echo "╠════════════════════════════════════════════════════════════╣"
-    echo "║  Commands:                                                 ║"
-    echo "║    make              - Build file_cgi                      ║"
-    echo "║    make test         - Run unit tests                      ║"
-    echo "║    make test-valgrind- Run tests with memory check         ║"
-    echo "║    make clean        - Clean build artifacts               ║"
-    echo "║    ./integration_tests.sh - Run integration tests (Docker) ║"
-    echo "╚════════════════════════════════════════════════════════════╝"
-    echo ""
-    echo "Environment ready. Libraries: sqlite, openssl"
+        echo "Environment ready. Libraries: sqlite, openssl"
   '';
 
   # Set library paths for compilation
