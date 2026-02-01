@@ -15,7 +15,7 @@
 #include <sqlite3.h>
 
 #define BUF_SIZE 65536
-#define TOKEN_LEN 64
+#define TOKEN_LEN 16
 #define HASH_HEX_LEN 64
 #define SECONDS_IN_72H (72 * 3600)
 #define FILENAME_MAXLEN 255
@@ -110,6 +110,11 @@ static void respond_text(int code, const char *msg, const char *body) {
 static void respond_json(int code, const char *msg, const char *body) {
     print_status(code, msg);
     printf("Content-Type: application/json\r\n\r\n%s\n", body ? body : "{}");
+}
+
+static void respond_html(int code, const char *msg, const char *body) {
+    print_status(code, msg);
+    printf("Content-Type: text/html; charset=utf-8\r\n\r\n%s\n", body ? body : "");
 }
 
 static void hex_encode(const unsigned char *in, size_t len, char *out) {
@@ -675,11 +680,58 @@ static void respond_upload(sqlite3 *db, const char *data_dir, const char *base_u
 
     char url[1024];
     snprintf(url, sizeof(url), "%s/download/%s", base_url, token);
-    char body[1200];
-    snprintf(body, sizeof(body),
-             "{ \"token\": \"%s\", \"download_url\": \"%s\", \"sha256\": \"%s\", \"size\": %lld }",
-             token, url, hash_hex, size);
-    respond_json(200, "OK", body);
+
+    /* Check if request wants JSON (API client) or HTML (browser form) */
+    const char *accept = getenv("HTTP_ACCEPT");
+    int wants_json = accept && strstr(accept, "application/json");
+
+    if (wants_json) {
+        char body[1200];
+        snprintf(body, sizeof(body),
+                 "{ \"token\": \"%s\", \"download_url\": \"%s\", \"sha256\": \"%s\", \"size\": %lld }",
+                 token, url, hash_hex, size);
+        respond_json(200, "OK", body);
+    } else {
+        char body[4096];
+        snprintf(body, sizeof(body),
+            "<!DOCTYPE html>"
+            "<html lang=\"en\">"
+            "<head>"
+            "<meta charset=\"utf-8\"/>"
+            "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>"
+            "<title>Upload Complete — getO</title>"
+            "<style>"
+            ":root{--bg:#f5f5f4;--fg:#0d0d0d;--muted:#595959;--stroke:#161616;--sans:'Noto Sans JP','Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}"
+            "html,body{height:100%%;margin:0;font-family:var(--sans);background:var(--bg);color:var(--fg)}"
+            ".wrap{display:flex;align-items:center;justify-content:center;height:100%%}"
+            ".card{width:420px;background:#fff;border-left:6px solid var(--stroke);padding:28px;box-sizing:border-box;border-radius:2px;box-shadow:14px 14px 0 rgba(0,0,0,0.06)}"
+            "h1{margin:0 0 8px 0;font-weight:700;font-size:20px}"
+            "p{margin:0 0 18px 0;color:var(--muted);font-size:13px}"
+            ".link-box{display:flex;align-items:center;gap:8px;margin-bottom:18px}"
+            ".link-box input{flex:1;padding:10px 12px;border:1px solid #e6e6e6;border-radius:2px;font-size:13px;font-family:monospace}"
+            ".link-box button{background:var(--stroke);color:#fff;border:none;padding:10px 14px;border-radius:2px;cursor:pointer;font-weight:600}"
+            ".meta{font-size:12px;color:var(--muted);margin-bottom:18px}"
+            ".actions a{display:inline-block;background:#f3f3f3;color:#222;padding:10px 14px;border-radius:2px;text-decoration:none;font-weight:600;font-size:13px}"
+            "</style>"
+            "</head>"
+            "<body>"
+            "<div class=\"wrap\">"
+            "<div class=\"card\">"
+            "<h1>&#10003; Upload Complete</h1>"
+            "<p>Your file is ready. This link expires in 72 hours.</p>"
+            "<div class=\"link-box\">"
+            "<input type=\"text\" id=\"url\" value=\"%s\" readonly/>"
+            "<button onclick=\"navigator.clipboard.writeText(document.getElementById('url').value)\">Copy</button>"
+            "</div>"
+            "<div class=\"meta\">Size: %lld bytes</div>"
+            "<div class=\"actions\"><a href=\"/\">&#8592; Upload another</a></div>"
+            "</div>"
+            "</div>"
+            "</body>"
+            "</html>",
+            url, size);
+        respond_html(200, "OK", body);
+    }
 }
 
 static void drop_single_url(sqlite3 *db, const char *token, const char *hash_hex) {
@@ -707,11 +759,27 @@ static void respond_download(sqlite3 *db, const char *token) {
         respond_text(404, "Not Found", "Unknown token");
         return;
     }
-    const char *hash = (const char *)sqlite3_column_text(stmt, 0);
+    const unsigned char *hash_txt = sqlite3_column_text(stmt, 0);
+    const unsigned char *filename_txt = sqlite3_column_text(stmt, 2);
+    const unsigned char *path_txt = sqlite3_column_text(stmt, 3);
     long long expires_at = sqlite3_column_int64(stmt, 1);
-    const char *filename = (const char *)sqlite3_column_text(stmt, 2);
-    const char *path = (const char *)sqlite3_column_text(stmt, 3);
     long long size = sqlite3_column_int64(stmt, 4);
+
+    /* Copy values out before finalizing the statement to avoid dangling pointers */
+    char hashbuf[HASH_HEX_LEN + 1] = {0};
+    if (hash_txt) strncpy(hashbuf, (const char *)hash_txt, HASH_HEX_LEN);
+    hashbuf[HASH_HEX_LEN] = '\0';
+    char filenamebuf[FILENAME_MAXLEN + 1] = {0};
+    if (filename_txt) strncpy(filenamebuf, (const char *)filename_txt, FILENAME_MAXLEN);
+    filenamebuf[FILENAME_MAXLEN] = '\0';
+    char pathbuf[PATH_MAX];
+    pathbuf[0] = '\0';
+    if (path_txt) strncpy(pathbuf, (const char *)path_txt, PATH_MAX - 1);
+    pathbuf[PATH_MAX - 1] = '\0';
+
+    const char *hash = hashbuf;
+    const char *filename = filenamebuf[0] ? filenamebuf : NULL;
+    const char *path = pathbuf[0] ? pathbuf : NULL;
 
     if (expires_at < now_seconds()) {
         sqlite3_finalize(stmt);
@@ -721,8 +789,28 @@ static void respond_download(sqlite3 *db, const char *token) {
     }
     sqlite3_finalize(stmt);
 
-    FILE *fp = fopen(path, "rb");
+    char serve_path[PATH_MAX];
+    if (path && strlen(path) < PATH_MAX) {
+        strncpy(serve_path, path, PATH_MAX);
+        serve_path[PATH_MAX-1] = '\0';
+    } else {
+        serve_path[0] = '\0';
+    }
+
+    FILE *fp = NULL;
+    if (serve_path[0]) {
+        fp = fopen(serve_path, "rb");
+    }
     if (!fp) {
+        /* Try falling back to data_dir/hash.bin in case the stored path is not accessible */
+        const char *dd = get_env("FILE_DATA_DIR", "./data");
+        snprintf(serve_path, sizeof(serve_path), "%s/%s.bin", dd, hash);
+        fp = fopen(serve_path, "rb");
+    }
+
+    if (!fp) {
+        int serr = errno;
+        fprintf(stderr, "fopen failed for '%s': %d %s\n", serve_path, serr, strerror(serr));
         respond_text(404, "Not Found", "File missing");
         drop_single_url(db, token, hash);
         return;
