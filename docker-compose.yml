@@ -12,7 +12,7 @@ services:
       - RATE_LIMIT_PER_MIN=60
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.geto.rule=Host(`files.tomoyo.systems`)"
+      - "traefik.http.routers.geto.rule=Host(`files.tomoyo.systems`) || Host(`geto.tomoyo.systems`)"
       - "traefik.http.routers.geto.entrypoints=websecure"
       - "traefik.http.routers.geto.tls.certresolver=letsencrypt"
       - "traefik.http.services.geto.loadbalancer.server.port=8080"

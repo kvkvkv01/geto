@@ -5,30 +5,158 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>getO — Minimal</title>
   <style>
-    :root{
-      --bg:#f5f5f4;
-      --fg:#0d0d0d;
-      --muted:#595959;
-      --stroke:#161616;
-      --radius:2px;
-      --gap:16px;
-      --sans:'Noto Sans JP','Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;
+    :root {
+      --font-main: "Hiragino Kaku Gothic Pro", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Osaka, "Meiryo", "MS PGothic", sans-serif;
+      --font-mono: "Courier New", "Consolas", monospace;
+      --bg: #fff;
+      --bg-subtle: #f9f9f9;
+      --text: #222;
+      --text-strong: #000;
+      --muted: #666;
+      --border: #ddd;
+      --border-strong: #000;
     }
-    html,body{height:100%;margin:0;font-family:var(--sans);background:var(--bg);color:var(--fg)}
-    .wrap{display:flex;align-items:center;justify-content:center;height:100%}
-    .card{width:380px;background:#ffffff;border-left:6px solid var(--stroke);padding:28px;box-sizing:border-box;border-radius:var(--radius);box-shadow:14px 14px 0 rgba(0,0,0,0.06)}
-    h1{margin:0 0 12px 0;font-weight:700;font-size:20px;color:var(--fg)}
-    p.lead{margin:0 0 18px 0;color:var(--muted);font-size:13px}
-    form{display:flex;flex-direction:column;gap:12px}
-    label{font-size:13px;color:var(--fg)}
-    .file-tile{display:flex;align-items:center;justify-content:space-between;border:1px solid #e6e6e6;padding:12px;border-radius:4px;background:#fff}
-    .file-tile span{font-size:13px;color:#333}
-    .choose{background:transparent;border:none;color:var(--stroke);font-weight:600;cursor:pointer}
-    .actions{display:flex;justify-content:flex-end}
-    .btn{background:var(--stroke);color:#fff;padding:10px 14px;border:none;font-weight:600;border-radius:2px;cursor:pointer}
-    .btn.secondary{background:#f3f3f3;color:#222;border:1px solid #e6e6e6;margin-right:8px}
-    footer{margin-top:14px;color:var(--muted);font-size:12px}
-    input[type=file]{display:none}
+
+    ::selection { background: #000; color: #fff; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.7;
+    }
+
+    .wrap {
+      min-height: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      box-sizing: border-box;
+      padding: 45px;
+    }
+
+    .card {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--border);
+      padding: 32px;
+      background: #fff;
+    }
+
+    h1 {
+      margin: 0 0 0.55em 0;
+      color: var(--text-strong);
+      font-size: 2.5em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    p.lead {
+      margin: 0 0 1.5em 0;
+      max-width: 680px;
+      color: #333;
+      font-size: 1em;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 680px;
+    }
+
+    label {
+      color: var(--text-strong);
+      font-size: 0.95em;
+      font-weight: 500;
+    }
+
+    .file-tile {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-subtle);
+    }
+
+    .file-tile span {
+      min-width: 0;
+      color: #333;
+      font-size: 0.95em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .choose {
+      background: transparent;
+      border: none;
+      color: var(--text-strong);
+      font: inherit;
+      font-size: 0.95em;
+      font-weight: 600;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 4px;
+    }
+
+    .btn {
+      border: 1px solid var(--border-strong);
+      background: var(--text-strong);
+      color: #fff;
+      padding: 10px 16px;
+      font: inherit;
+      font-size: 0.95em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+    }
+
+    .choose:hover,
+    .btn:hover {
+      opacity: 0.8;
+    }
+
+    .choose:focus-visible,
+    .btn:focus-visible {
+      outline: 2px solid #000;
+      outline-offset: 2px;
+    }
+
+    footer {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.9em;
+    }
+
+    input[type=file] { display: none; }
+
+    @media only screen and (max-width: 768px) {
+      .wrap { padding: 20px; }
+      .card { padding: 24px 20px; }
+      h1 { font-size: 1.8em; }
+    }
+
+    @media only screen and (max-width: 560px) {
+      .file-tile {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
   </style>
 </head>
 <body>
